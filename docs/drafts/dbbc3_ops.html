@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="generator" content="Asciidoctor 2.0.10">
-<meta name="author" content="Version 0.1 - January 2021">
+<meta name="author" content="Version 0.2 - January 2021">
 <title>VERY ROUGH DRAFT FS DBBC3 Operations Manual</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,300italic,400,400italic,600,600italic%7CNoto+Serif:400,400italic,700,700italic%7CDroid+Sans+Mono:400,700">
 <style>
@@ -441,7 +441,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <div id="header">
 <h1>VERY ROUGH DRAFT FS DBBC3 Operations Manual</h1>
 <div class="details">
-<span id="author" class="author">Version 0.1 - January 2021</span><br>
+<span id="author" class="author">Version 0.2 - January 2021</span><br>
 </div>
 <div id="toc" class="toc">
 <div id="toctitle">Table of Contents</div>
@@ -699,8 +699,8 @@ was successful?</p>
 <div class="paragraph">
 <p>Normally, the FS sets the mode for each scan (unless there is continuous
 recording). If this takes too long or makes the equipment unstable, the <em>drudg</em>
-option <code>setup_proc yes</code> (<mark>TODO: check final spelling</mark>) in
-<em>skedf.ctl</em> can be used to minimize the execution of the set-up.</p>
+option <code>use_setup_proc yes</code> in <em>skedf.ctl</em> can be used to minimize the
+execution of the set-up.</p>
 </div>
 <div class="admonitionblock warning">
 <table>
@@ -751,8 +751,7 @@ schedule.</p>
 </td>
 <td class="content">
 <div class="paragraph">
-<p>The <code>setup_proc</code> option (<mark>TODO: check final spelling</mark>) in <em>skedf.ctl</em> has three
-possible settings:</p>
+<p>The <code>use_setup_proc</code> option in <em>skedf.ctl</em> has three possible settings:</p>
 </div>
 <div class="ulist">
 <ul>
@@ -781,7 +780,7 @@ possible settings:</p>
 <div class="title">Note</div>
 </td>
 <td class="content">
-The <code>setup_proc</code> option applies to all systems, not just DBBC3
+The <code>use_setup_proc</code> option applies to all systems, not just DBBC3
 </td>
 </tr>
 </table>
@@ -789,8 +788,150 @@ The <code>setup_proc</code> option applies to all systems, not just DBBC3
 </div>
 <div class="sect2">
 <h3 id="_jive5ab_cnfg_procedure">3.2. jive5ab_cnfg procedure</h3>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+This also applies to any system using a Mark 5C or FlexBuff recorder.
+</td>
+</tr>
+</table>
+</div>
 <div class="paragraph">
-<p><mark>TODO: Write this section</mark></p>
+<p>Each mode SNAP procedure produced by <em>drudg</em> for Mark 5C and FlexBuff recorders
+includes a call to the <code>jive5ab_cnfg</code> SNAP procedure. This procedure call is
+inserted immediately after the <code>mk5c_mode</code>/<code>fb_mode</code> command. The procedure
+is mode independent, i.e., the same procedure is used for all modes.</p>
+</div>
+<div class="paragraph">
+<p>This procedure a local <code>station</code> library procedure to allow tuning of the
+configuration of <em>jive5ab</em> for the specifics of the recorder, including
+overriding the &#8220;default&#8221; configuration given by the <code>mk5c_mode</code>/<code>fb_mode</code>
+command.</p>
+</div>
+<div class="sect3">
+<h4 id="_default_configuration">3.2.1. Default configuration</h4>
+<div class="paragraph">
+<p>The <code>mk5c_mode</code>/<code>fb_mode</code> command sends the follow commands depending on
+whether the recorder select in <em>equip.ctl</em> is <code>mk5c</code> or <code>flexbuff</code>. It does
+<em>not</em> depend on which command is used; <code>fb_mode</code> is just an alias for
+<code>mk5c_mode</code>. It does depends on the data type, VDIF or 5B/Ethernet. Thus there
+are two options for each recorder type. These are given below.</p>
+</div>
+<div class="sect4">
+<h5 id="_flexbuff_recorder">FlexBuff recorder</h5>
+<div class="paragraph">
+<p>For FlexBuff recorders, there is a variable field <code><em>buffer</em></code> in <code>net_protocol</code>
+command sent to the recorder.</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>VDIF data</p>
+<div class="literalblock">
+<div class="content">
+<pre>mtu = 9000 ;
+net_protocol = udpsnor : <em>buffer</em> : 256000000 : 4 ;</pre>
+</div>
+</div>
+</li>
+<li>
+<p>5B/Ethernet data</p>
+<div class="literalblock">
+<div class="content">
+<pre>mtu = 6000 ;
+net_protocol = udpsnor : <em>buffer</em> : 256000000 : 4 ;</pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>Where the <em>buffer</em> field depends on the total data rate:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>32000000&#8201;&#8212;&#8201;data rate &lt; 1 Gbps</p>
+</li>
+<li>
+<p>64000000&#8201;&#8212;&#8201;1 Gbps &lt; data rate &#8656; 4 Gbps</p>
+</li>
+<li>
+<p>128000000&#8201;&#8212;&#8201;data rate &gt; 4 Gbps</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect4">
+<h5 id="_mark_5c_recorder">Mark 5C recorder</h5>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>VDIF data</p>
+<div class="literalblock">
+<div class="content">
+<pre>net_protocol = : 128k : 2M : 4;
+packet = 36 : 0 : 8032 : 0 : 0 ;</pre>
+</div>
+</div>
+</li>
+<li>
+<p>5B/Ethernet data</p>
+<div class="literalblock">
+<div class="content">
+<pre>net_protocol = : 128k : 2M : 4;
+packet = 36 : 0 : 5008 : 0 : 0 ;</pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_overriding_the_default">3.2.2. Overriding the default</h4>
+<div class="paragraph">
+<p>You can override the commands sent by the <code>mk5c_mode</code>/<code>fb_mode</code> command or add
+more by putting them in your local <code>jive5ab_cnfg</code>. This works because
+<code>jive5ab_cnfg</code> is called after <code>mk5c_mode</code>/<code>fb_mode</code> in the setup procedure. An
+example of local customizations is given in the sub-sections below.</p>
+</div>
+<div class="admonitionblock caution">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Caution</div>
+</td>
+<td class="content">
+If put any commands in <code>jive5ab_cnfg</code> that depend on the data type,
+VDIF or 5B/Ethernet, you would need to change them if there is a change in the
+data type. This is not a concern for most stations.
+</td>
+</tr>
+</table>
+</div>
+<div class="sect4">
+<h5 id="_multi_threaded">Multi-threaded</h5>
+<div class="paragraph">
+<p>The FlexBuff recorders place all threads in one file by default. If instead you
+need one thread per file, you can add the following commands to <code>jive5ab_cnfg</code>:</p>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>jive5ab=datastream=clear
+jive5ab=datastream=add:{thread}:*
+jive5ab=datastream=reset</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>If you need to switch between all threads in one file and each thread in its
+own file, you can accomplish this by commenting out, or un-commenting, the
+<code>jive5ab=datastream=add:{thread}:*</code> line, respectively. This will need to be
+done an experiment-by-experiment basis depending on each experiment&#8217;s needs.</p>
 </div>
 <div class="admonitionblock note">
 <table>
@@ -799,10 +940,88 @@ The <code>setup_proc</code> option applies to all systems, not just DBBC3
 <div class="title">Note</div>
 </td>
 <td class="content">
-This also applies to other Mark 5C and FlexBuff systems.
+In SNAP, putting a double quote <code>"</code> as the first character in a line
+makes it a comment.
 </td>
 </tr>
 </table>
+</div>
+</div>
+<div class="sect4">
+<h5 id="_changing_net_protocol">Changing net_protocol</h5>
+<div class="paragraph">
+<p>If you use different values for <code>net_protocol</code>, you can leave any field blank
+that your don&#8217;t need to change from what the FS has already sent. For example
+to only set the buffer size to <code>64000000</code> for all cases, use:</p>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>net_protocol = : 64000000</pre>
+</div>
+</div>
+<div class="exampleblock">
+<div class="content">
+<div class="paragraph">
+<p>Questions:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic" start="8">
+<li>
+<p>Is the description correct for the above?</p>
+</li>
+<li>
+<p>Should we add guidelines for tuning parameters depending on the recorder?</p>
+</li>
+<li>
+<p>Are there other examples we should give?</p>
+</li>
+<li>
+<p>Should <code>net_protocol</code> for Mark 5C have a value?</p>
+</li>
+<li>
+<p>I know we decided to put this single file per thread option in
+<code>jive5ab_cnfg</code>, but I can&#8217;t remember now if we thought it was because it would
+not be changed very often or if I was reluctant to ask for a <em>drudg</em> option. I
+am now thinking we might be able to add it as an option. A question is whether
+it is worthwhile. I don&#8217;t know how many stations would use it. I guess Eskil
+would, but if so, is it better that commenting/un-commenting the relevant line
+in <code>jive5ab_cnf</code>?</p>
+<div class="paragraph">
+<p>If we made it an option, it might be controlled by a <em>skedf.ctl</em> option
+<code>single_threads_per_file</code>:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>If the option is not present <em>drudg</em> does nothing.</p>
+</li>
+<li>
+<p>If the option is set to <code>yes</code>, <em>drudg</em> produces a <code>thread</code> procedure with the
+commands above.</p>
+</li>
+<li>
+<p>If the option is set to <code>no</code>,  <em>drudg</em> produces a <code>thread</code> procedure without
+the <code>jive5ab=datastream=add:{thread}:*</code> command.</p>
+</li>
+<li>
+<p>If the option is set to <code>ask</code>, it will prompt for <code>yes</code> or <code>no</code> for each
+experiment.</p>
+<div class="paragraph">
+<p>Maybe we could have <code>skip</code> option (do nothing) for <code>ask</code> as well if it would be
+helpful.</p>
+</div>
+</li>
+<li>
+<p>The <code>thread</code> procedure would come after <code>mk5c_mode</code>/<code>fb_mode</code> and before <code>jive5ab_cnfg</code>.</p>
+</li>
+</ul>
+</div>
+</li>
+</ol>
+</div>
+</div>
+</div>
+</div>
 </div>
 </div>
 </div>
@@ -810,7 +1029,7 @@ This also applies to other Mark 5C and FlexBuff systems.
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2021-01-14 19:03:40 -0500
+Last updated 2021-01-18 12:09:18 -0500
 </div>
 </div>
 </body>
